@@ -11,11 +11,18 @@ def main():
     connect_to_wifi(config.SSID, config.WIFI_PASSWORD)
     
     smart_plants = [
-        SmartPlant("citrus_1", 32, 34, 30),
-        SmartPlant("citrus_2", 33, 35, 30),
+        SmartPlant("test_plant_2",
+                   pump_pin=33,
+                   moisture_sensor_pin=34,
+                   dry_reference=4095,
+                   wet_reference=2900,
+                   dry_treshold=30,
+                   filter_window_size=5),
     ]
     
-    irrigation_system = IrrigationSystem(smart_plants, 5)
+    irrigation_system = IrrigationSystem(smart_plants,
+                                         monitor_interval_seconds=config.MONITOR_INTERVAL,
+                                         watering_duration=0.5)
     irrigation_system.start_monitoring()
     
 if __name__ == '__main__':

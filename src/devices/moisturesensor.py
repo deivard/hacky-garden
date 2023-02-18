@@ -1,24 +1,26 @@
 from machine import Pin, ADC
 
 class ReferenceLevels:
-    def __init__(self, water: int = 300, air: int = 2300) -> None:
-        self.water = water
-        self.air = air
+    def __init__(self, dry: int = 4095, wet: int = 3000) -> None:
+        self.dry = dry
+        self.wet = wet
         
-        if air <= water:
-            raise ValueError("Air reference level cannot be lower than water reference level.")
+        if dry <= wet:
+            raise ValueError("Dry reference level cannot be lower than wet reference level.")
 
 
 class MoistureSensor:
-    def __init__(self, pin_id: int) -> None:
+    def __init__(self, pin_id: int,
+                 dry_reference: int = 4095,
+                 wet_reference: int = 3000) -> None:
         self.__pin = ADC(Pin(pin_id))
         self.__pin.atten(ADC.ATTN_11DB)
-        self.__reference_levels = ReferenceLevels()
+        self.__reference_levels = ReferenceLevels(dry_reference, wet_reference)
 
     def __value_to_percent(self, value):
         new_value = ( 
-            (((value - self.__reference_levels.water) * (100 - 0))
-            / (self.__reference_levels.air - self.__reference_levels.water))
+            (((value - self.__reference_levels.dry) * (100 - 0))
+            / (self.__reference_levels.wet - self.__reference_levels.dry))
             + 0
         )
         return new_value
