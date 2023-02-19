@@ -9,12 +9,14 @@ class IrrigationSystem:
     def __init__(self,
                  smart_plants: list[SmartPlant] = None,
                  monitor_interval_seconds: int = 3600,
+                 watering_cooldown_seconds: int = 60 * 5, 
                  watering_duration: int = 1) -> None:
         if smart_plants is None:
             smart_plants = []
         self.smart_plants = smart_plants
         self.monitor_interval_seconds = monitor_interval_seconds
         self.watering_duration = watering_duration
+        self.watering_cooldown = watering_cooldown_seconds
         self.led = Pin(2, Pin.OUT)
         self.wdt = WDT(timeout=max((self.monitor_interval_seconds + 200)*1000, 5000))
         gc.enable()
@@ -29,14 +31,21 @@ class IrrigationSystem:
                                plant.latest_moisture_level,
                                plant.latest_reading_timestamp)
     
+    def allowed_to_water_plant(self, plant: SmartPlant):
+        current_time = time.time()
+        if plant.latest_watering_time is None:
+            return True
+        return (current_time - plant.latest_watering_time) > self.watering_cooldown
+    
     def water_dry_plants(self, watering_duration_seconds: int = 1):
         for plant in self.smart_plants:
-            if plant.needs_watering():
+            if plant.needs_watering() and self.allowed_to_water_plant(plant):
                 print(f"Starts watering {plant.name}")
                 plant.water_on()
         time.sleep(watering_duration_seconds)
         for plant in self.smart_plants:
-            print(f"Stops watering {plant.name}")
+            if plant.needs_watering() and self.allowed_to_water_plant(plant):
+                print(f"Stops watering {plant.name}")
             plant.water_off()
         
     def __get_sleep_time(self, start_time_ns):

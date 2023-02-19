@@ -21,7 +21,7 @@ def main():
     ]
     
     irrigation_system = IrrigationSystem(smart_plants,
-                                         monitor_interval_seconds=config.MONITOR_INTERVAL,
+                                         monitor_interval_seconds=config.MONITOR_INTERVAL_S,
                                          watering_duration=0.5)
     irrigation_system.start_monitoring()
     

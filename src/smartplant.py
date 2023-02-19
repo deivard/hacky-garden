@@ -17,6 +17,7 @@ class SmartPlant:
         self.moisture_sensor = MoistureSensor(moisture_sensor_pin,
                                               dry_reference,
                                               wet_reference)
+        self.latest_watering_time = None
         self.__filters = [
             Clamp(0, 100),
             MovingAverage(window_size=filter_window_size)
@@ -40,18 +41,20 @@ class SmartPlant:
         self.latest_reading_timestamp = time.time_ns()
         return filtered
 
-    def needs_watering(self):
+    def needs_watering(self) -> bool:
         if self.latest_moisture_level is not None:
             return self.latest_moisture_level <= self.dry_treshold
         return False
     
     def water_on(self):
         self.pump.on()
+        self.latest_watering_time = time.time()
     
     def water_off(self):
         self.pump.off()
     
     def water(self, duration_seconds: int = 1):
         self.pump.on()
+        self.latest_watering_time = time.time()
         time.sleep(duration_seconds)
         self.pump.off()
