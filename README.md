@@ -16,3 +16,13 @@ Note to self so I remember how to run this in a few years when I revisit it:
 
 Note: 
 I used influxdb v1.8 since I host it on a Raspberry Pi with a 32 bit OS that does not support InfluxDB v2.0+. Don't know if the logger will work for v2.0+. :)
+
+
+## Modifying the software with FTP
+Based on [uftpd](https://github.com/robert-hh/FTP-Server-for-ESP8266-ESP32-and-PYBD).
+1. Connect to the device via webrepl (IP for me `ws://192.168.50.43:8266`)
+2. Stop the current program by pressing ctrl-c
+3. Execute the following command to start the ftp server: `import uftpd` 
+4. Connect to the ftp server, e.g., via WinSCP. Device IP as hostname and port 21. Anonymous login since credentials are not supported.
+5. Upload the new files
+6. Press ctrl-d in webrepl to reboot the device

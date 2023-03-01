@@ -7,33 +7,55 @@ if "src" in os.listdir():
 from irrigationsystem import IrrigationSystem
 from smartplant import SmartPlant
 from connections import connect_to_wifi
+from logger import log_boot_time
+import time
 import config
+import btree
 
+def remove_inactive_plants_from_db(plants):
+    try:
+        f = open("smartplantdb", "r+b")
+    except OSError:
+        f = open("smartplantdb", "w+b")
+    db = btree.open(f)
+    names = [plant.name for plant in plants]
+    for key in db.keys():
+        if key.decode("utf-8") not in names:
+            del db[b"" + key]
+    db.flush()
+    db.close()
+    f.close()
 
 def main():
     connect_to_wifi(config.SSID, config.WIFI_PASSWORD)
+    log_boot_time(config.DEVICE_NAME, time.time())
     
     smart_plants = [
         SmartPlant("plant_1",
                    pump_pin=33,
                    moisture_sensor_pin=34,
-                   dry_reference=3600,
+                   dry_reference=3700,
                    wet_reference=2900,
-                   dry_treshold=30,
-                   filter_window_size=config.MOVING_AVERAGE_WINDOW_SIZE),
+                   dry_treshold=20,
+                   watered_threshold=70,
+                   filter_window_size=config.MOVING_AVERAGE_WINDOW_SIZE,
+                   watering_time=5),
         SmartPlant("plant_2",
                    pump_pin=32,
                    moisture_sensor_pin=35,
-                   dry_reference=3600,
+                   dry_reference=3700,
                    wet_reference=2900,
-                   dry_treshold=30,
-                   filter_window_size=config.MOVING_AVERAGE_WINDOW_SIZE),
+                   dry_treshold=20,
+                   watered_threshold=70,
+                   filter_window_size=config.MOVING_AVERAGE_WINDOW_SIZE,
+                   watering_time=5)
     ]
+    
+    remove_inactive_plants_from_db(smart_plants)
     
     irrigation_system = IrrigationSystem(smart_plants,
                                          monitor_interval_seconds=config.MONITOR_INTERVAL_S,
-                                         watering_cooldown_seconds= 60*10,
-                                         watering_duration=config.WATERING_DURATION_S)
+                                         watering_cooldown_seconds= 60*10)
     irrigation_system.start_monitoring()
     
 

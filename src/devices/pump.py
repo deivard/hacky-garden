@@ -15,3 +15,6 @@ class Pump:
         
     def off(self):
         self.__pin.value(int(self.__relay_type.OFF))
+        
+    def value(self):
+        return self.__pin.value()
