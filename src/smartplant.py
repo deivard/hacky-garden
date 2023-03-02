@@ -79,17 +79,18 @@ class SmartPlant:
         return self.latest_moisture_level >= self.watered_threshold
 
     def watering_cycle_should_start(self):
-        return self.latest_moisture_level < self.dry_treshold
+        return self.latest_moisture_level <= self.dry_treshold
 
     def manage_watering_cycle(self):
-        if self.watering_cycle_should_end and self.watering_cycle_active:
+        if self.watering_cycle_should_end() and self.watering_cycle_active:
             self.watering_cycle_active = False
             self.store_watering_cycle_state()
-        elif self.watering_cycle_should_start and not self.watering_cycle_active:
+        elif self.watering_cycle_should_start() and not self.watering_cycle_active:
             self.watering_cycle_active = True
             self.store_watering_cycle_state()
 
     def needs_watering(self) -> bool:
+        self.manage_watering_cycle()
         if self.latest_moisture_level is not None:
             return (self.latest_moisture_level <= self.dry_treshold
                     or self.watering_cycle_active)
