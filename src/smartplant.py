@@ -26,6 +26,7 @@ class SmartPlant:
             MovingAverage(window_size=filter_window_size)
         ]
         self.latest_moisture_level = None
+        self.latest_raw_sensor_value = None
         self.latest_reading_timestamp_ns = None
         self.watering_time = watering_time
         self.dry_treshold = dry_treshold
@@ -67,11 +68,12 @@ class SmartPlant:
         return filtered
 
     def update_moisture_level(self):
-        unfiltered = self.moisture_sensor.read_percent()
-        filtered = self.filter_value(unfiltered)
-        print(f"{self.name} - Unfiltered moisture level: {unfiltered}%. Filtered: {filtered}")
+        unfiltered_percent, raw = self.moisture_sensor.read_percent_and_raw()
+        filtered = self.filter_value(unfiltered_percent)
+        print(f"{self.name} - Unfiltered moisture level: {unfiltered_percent}%. Filtered: {filtered}")
         print(f"\t Last {len(self.__filters[-1].__window)} readings: {self.__filters[-1].__window}")
         self.latest_moisture_level = filtered
+        self.latest_raw_sensor_value = raw
         self.latest_reading_timestamp_ns = time.time_ns()
         return filtered
 
@@ -85,9 +87,11 @@ class SmartPlant:
         if self.watering_cycle_should_end() and self.watering_cycle_active:
             self.watering_cycle_active = False
             self.store_watering_cycle_state()
+            print(f"{self.name} - Ended watering cycle")
         elif self.watering_cycle_should_start() and not self.watering_cycle_active:
             self.watering_cycle_active = True
             self.store_watering_cycle_state()
+            print(f"{self.name} - Started watering cycle")
 
     def needs_watering(self) -> bool:
         self.manage_watering_cycle()
@@ -99,12 +103,12 @@ class SmartPlant:
     def water_on(self):
         self.pump.on()
         self.water_on_timestamp_ns = time.time_ns()
+        self.latest_watering_time = time.time()
         self.manage_watering_cycle()
     
     def water_off(self):
         self.pump.off()
         self.manage_watering_cycle()
-        self.latest_watering_time = time.time()
         if self.water_on_timestamp_ns is not None:
             self.latest_watering_duration = time.time_ns() - self.water_on_timestamp_ns
             self.water_on_timestamp_ns = None

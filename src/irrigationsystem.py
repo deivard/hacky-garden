@@ -1,6 +1,6 @@
 import time
 from smartplant import SmartPlant
-from logger import log_moisture_level, log_watering_time
+from logger import log_moisture_level, log_watering_time, log_raw_sensor_value
 from machine import WDT, Pin
 import gc
 
@@ -9,12 +9,15 @@ class IrrigationSystem:
     def __init__(self,
                  smart_plants: list[SmartPlant] = None,
                  monitor_interval_seconds: int = 3600,
-                 watering_cooldown_seconds: int = 60 * 5) -> None:
+                 watering_cooldown_seconds: int = 60 * 5,
+                 logging_enabled: bool = True) -> None:
         if smart_plants is None:
             smart_plants = []
         self.smart_plants = smart_plants
+        self.logging_enabled = logging_enabled
         self.monitor_interval_s = monitor_interval_seconds
         self.watering_cooldown_s = watering_cooldown_seconds
+        print(f"Watering cooldown {self.watering_cooldown_s}")
         self.led = Pin(2, Pin.OUT)
         self.wdt = WDT(timeout=max((self.monitor_interval_s + 200)*1000, 5000))
         gc.enable()
@@ -28,12 +31,20 @@ class IrrigationSystem:
             log_moisture_level(plant.name,
                                plant.latest_moisture_level,
                                plant.latest_reading_timestamp_ns)
+            
+    def log_raw_sensor_values(self):
+        for plant in self.smart_plants:
+            log_raw_sensor_value(plant.name,
+                                 plant.latest_raw_sensor_value,
+                                 plant.latest_reading_timestamp_ns)
     
     def allowed_to_water_plant(self, plant: SmartPlant):
         current_time = time.time()
         if plant.latest_watering_time is None:
             return True
-        return (current_time - plant.latest_watering_time) > self.watering_cooldown_s
+        delta = (current_time - plant.latest_watering_time)  
+        print(f"{plant.name}: Allowed to water in {self.watering_cooldown_s - delta} seconds")
+        return delta > self.watering_cooldown_s
     
     def __turn_off_pumps_when_finished(self, plants_watering):
         while plants_watering:
@@ -56,6 +67,11 @@ class IrrigationSystem:
         watered_plants = []
         active_pumps = []
         for plant in self.smart_plants:
+            if plant.needs_watering():
+                print(f"Plant {plant.name} needs watering.")
+                if not self.allowed_to_water_plant(plant):
+                    print(f"Plant {plant.name} not allowed to water yet.")
+                    
             if plant.needs_watering() and self.allowed_to_water_plant(plant):
                 print(f"Starts watering {plant.name}")
                 plant.water_on()
@@ -77,7 +93,7 @@ class IrrigationSystem:
         time_to_sleep = self.monitor_interval_s - (duration_ns / 1e9)
         time_to_sleep = max(time_to_sleep, 1)
         return time_to_sleep
-        
+    
     def start_monitoring(self):
         while True:
             self.led.on()
@@ -87,9 +103,11 @@ class IrrigationSystem:
             self.wdt.feed()
 
             self.update_moisture_readings()
-            self.log_moisture_levels()
             watered_plants = self.water_dry_plants()
-            self.log_watering_durations(watered_plants)
+            if self.logging_enabled:
+                self.log_moisture_levels()
+                self.log_raw_sensor_values()
+                self.log_watering_durations(watered_plants)
             self.wdt.feed()
             
             time_to_sleep = self.__get_sleep_time(start_time_ns)

@@ -27,14 +27,16 @@ def remove_inactive_plants_from_db(plants):
     f.close()
 
 def main():
-    connect_to_wifi(config.SSID, config.WIFI_PASSWORD)
-    log_boot_time(config.DEVICE_NAME, time.time())
+    if config.SSID is not None:
+        connect_to_wifi(config.SSID, config.WIFI_PASSWORD)
+    if config.LOGGING_ENABLED:
+        log_boot_time(config.DEVICE_NAME, time.time())
     
     smart_plants = [
         SmartPlant("plant_1",
                    pump_pin=33,
                    moisture_sensor_pin=34,
-                   dry_reference=3700,
+                   dry_reference=4000,
                    wet_reference=2900,
                    dry_treshold=20,
                    watered_threshold=70,
@@ -43,7 +45,7 @@ def main():
         SmartPlant("plant_2",
                    pump_pin=32,
                    moisture_sensor_pin=35,
-                   dry_reference=3700,
+                   dry_reference=4000,
                    wet_reference=2900,
                    dry_treshold=20,
                    watered_threshold=70,
@@ -55,7 +57,8 @@ def main():
     
     irrigation_system = IrrigationSystem(smart_plants,
                                          monitor_interval_seconds=config.MONITOR_INTERVAL_S,
-                                         watering_cooldown_seconds= 60*10)
+                                         watering_cooldown_seconds=config.WATERING_COOLDOWN_S,
+                                         logging_enabled=config.LOGGING_ENABLED)
     irrigation_system.start_monitoring()
     
 

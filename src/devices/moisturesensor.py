@@ -27,7 +27,10 @@ class MoistureSensor:
 
     def read_raw(self):
         return self.__pin.read()
-
+    
     def read_percent(self):
         return self.__value_to_percent(self.read_raw())
 
+    def read_percent_and_raw(self):
+        raw = self.read_raw()
+        return self.__value_to_percent(raw), raw
